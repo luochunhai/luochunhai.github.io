@@ -10260,6 +10260,18 @@ body {
   display: flex;
   flex-direction: column;
 }
+body .container {
+  max-width: 100%;
+}
+body .navbar-end {
+  margin-right: 10%;
+}
+body .level-start {
+  margin-left: 18%;
+}
+body > .navbar.navbar-main {
+  margin-left: 18%;
+}
 body > .section {
   flex-grow: 1;
 }
@@ -11649,6 +11661,15 @@ figure.highlight .section {
     position: sticky;
     top: 1.5rem;
     z-index: 99;
+  }
+  .column.is-6-widescreen {
+    width: 60%;
+    margin-left: 2%;
+    margin-right: 2%;
+  }
+  .column.is-3-widescreen {
+    width: 15%;
+    margin-left: 3%;
   }
   .column-main.is-sticky,
   .column-left.is-sticky,
