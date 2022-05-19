@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta><title>springboot metrics config - Summer</title><link rel="manifest" href="/manifest.json"><meta name="application-name" content="Summer"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Summer"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="description" content="SpringBoot配置Actuator metrics的监控"><meta property="og:type" content="blog"><meta property="og:title" content="springboot metrics config"><meta property="og:url" content="https://luochunhai.github.io/2022/04/13/spring/spring-metrics/"><meta property="og:site_name" content="Summer"><meta property="og:description" content="SpringBoot配置Actuator metrics的监控"><meta property="og:locale" content="zh_CN"><meta property="og:image" content="https://luochunhai.github.io/img/og_image.png"><meta property="article:published_time" content="2022-04-13T07:51:10.000Z"><meta property="article:modified_time" content="2022-04-13T10:05:32.339Z"><meta property="article:author" content="Luo Chunhai"><meta property="article:tag" content="spring"><meta property="article:tag" content="metrics"><meta property="twitter:card" content="summary"><meta property="twitter:image" content="/img/og_image.png"><script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","mainEntityOfPage":{"@type":"WebPage","@id":"https://luochunhai.github.io/2022/04/13/spring/spring-metrics/"},"headline":"springboot metrics config","image":["https://luochunhai.github.io/img/og_image.png"],"datePublished":"2022-04-13T07:51:10.000Z","dateModified":"2022-04-13T10:05:32.339Z","author":{"@type":"Person","name":"Luo Chunhai"},"publisher":{"@type":"Organization","name":"Summer","logo":{"@type":"ImageObject","url":{"text":"Summer"}}},"description":"SpringBoot配置Actuator metrics的监控"}</script><link rel="canonical" href="https://luochunhai.github.io/2022/04/13/spring/spring-metrics/"><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.2/css/all.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@9.12.0/styles/atom-one-light.css"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;600&amp;family=Source+Code+Pro"><link rel="stylesheet" href="/css/default.css"><style>body>.footer,body>.navbar,body>.section{opacity:0}</style><!--!--><!--!--><!--!--><!--!--><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/css/lightgallery.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/css/justifiedGallery.min.css"><!--!--><!--!--><script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script><!--!--><!--!--><meta name="generator" content="Hexo 5.4.2"></head><body class="is-3-column"><nav class="navbar navbar-main"><div class="container"><div class="navbar-brand justify-content-center"><a class="navbar-item navbar-logo" href="/">Summer</a></div><div class="navbar-menu"><div class="navbar-start"><a class="navbar-item" href="/">主页</a><a class="navbar-item" href="/archives">归档</a><a class="navbar-item" href="/categories">分类</a><a class="navbar-item" href="/tags">标签</a><a class="navbar-item" href="/about">关于我</a></div><div class="navbar-end"><a class="navbar-item" target="_blank" rel="noopener" title="Download on GitHub" href="https://github.com/luochunhai"><i class="fab fa-github"></i></a><a class="navbar-item" target="_blank" rel="noopener" title="Summer" href="http://www.luochunhai.club/"><i class="fas fa-link"></i></a><a class="navbar-item is-hidden-tablet catalogue" title="目录" href="javascript:;"><i class="fas fa-list-ul"></i></a><a class="navbar-item search" title="搜索" href="javascript:;"><i class="fas fa-search"></i></a></div></div></div></nav><section class="section"><div class="container"><div class="columns"><div class="column order-2 column-main is-8-tablet is-8-desktop is-8-widescreen"><div class="card"><article class="card-content article" role="article"><div class="article-meta is-size-7 is-uppercase level is-mobile"><div class="level-left"><span class="level-item"><time dateTime="2022-04-13T07:51:10.000Z" title="4/13/2022, 3:51:10 PM">2022-04-13</time>发表</span><span class="level-item"><time dateTime="2022-04-13T10:05:32.339Z" title="4/13/2022, 6:05:32 PM">2022-04-13</time>更新</span><span class="level-item"><a class="link-muted" href="/categories/spring/">spring</a><span> / </span><a class="link-muted" href="/categories/spring/metrics/">metrics</a></span><span class="level-item">24 分钟读完 (大约3527个字)</span></div></div><h1 class="title is-3 is-size-4-mobile">springboot metrics config</h1><div class="content"><h2 id="SpringBoot配置Actuator-metrics的监控"><a href="#SpringBoot配置Actuator-metrics的监控" class="headerlink" title="SpringBoot配置Actuator metrics的监控"></a>SpringBoot配置Actuator metrics的监控</h2><span id="more"></span>
+
+<p>Actuator 是 Spring Boot 提供的对应用系统的自省和监控功能。通过 Actuator，可以使用数据化的指标去度量应用的运行情况，比如查看服务器的磁盘、内存、CPU等信息，系统的线程、gc、运行状态等等。Prometheus指标只是其中之一，也是本次流量监控用到的主体。<br>Actuator 通常通过使用 HTTP 和 JMX 来管理和监控应用，大多数情况使用 HTTP 的方式。</p>
+<ul>
+<li>Maven引入Actuator和Prometheus<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;spring-boot-starter-actuator&lt;/artifactId&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;io.micrometer&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;micrometer-registry-prometheus&lt;/artifactId&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure></li>
+<li>yml上配置信息<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">management:</span><br><span class="line">  endpoints:</span><br><span class="line">    web:</span><br><span class="line">      exposure:</span><br><span class="line">        # 开启所有端点</span><br><span class="line">        include: &#x27;*&#x27;</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">spring.application.name=springboot2demo</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">打开所有 Actuator 服务</span></span><br><span class="line">management.endpoints.web.exposure.include=*</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">将应用名称添加到计量器的 tag 中去</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">以便 Prometheus 根据应用名区分不同服务</span></span><br><span class="line">management.metrics.tags.application=$&#123;spring.application.name&#125;</span><br></pre></td></tr></table></figure>
+在启动类中添加Bean，用于监控JVM性能指标：<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> io.micrometer.core.instrument.MeterRegistry;</span><br><span class="line"><span class="keyword">import</span> org.springframework.beans.factory.annotation.Value;</span><br><span class="line"><span class="keyword">import</span> org.springframework.boot.SpringApplication;</span><br><span class="line"><span class="keyword">import</span> org.springframework.boot.actuate.autoconfigure.metrics.MeterRegistryCustomizer;</span><br><span class="line"><span class="keyword">import</span> org.springframework.boot.autoconfigure.SpringBootApplication;</span><br><span class="line"><span class="keyword">import</span> org.springframework.context.annotation.Bean;</span><br><span class="line"></span><br><span class="line"><span class="meta">@SpringBootApplication</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Springboot2demoApplication</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        SpringApplication.run(Springboot2demoApplication.class, args);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    MeterRegistryCustomizer&lt;MeterRegistry&gt; <span class="title function_">configurer</span><span class="params">(</span></span><br><span class="line"><span class="params">            <span class="meta">@Value(&quot;$&#123;spring.application.name&#125;&quot;)</span> String applicationName)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> (registry) -&gt; registry.config().commonTags(<span class="string">&quot;application&quot;</span>, applicationName);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li>然后就可以在项目中查看运行的指标了。<br>Actuator指标：<code>localhost:8080/actuator/metrics</code><br>Prometheus指标：<code>localhost:8080/actuator/prometheus</code></li>
+</ul>
+<h3 id="Actuator对应Prometheus的监控指标"><a href="#Actuator对应Prometheus的监控指标" class="headerlink" title="Actuator对应Prometheus的监控指标"></a>Actuator对应Prometheus的监控指标</h3><details>
+
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_sessions_rejected_sessions_total</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_sessions_rejected_sessions_total counter</span></span><br><span class="line">tomcat_sessions_rejected_sessions_total 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_sessions_alive_max_seconds</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_sessions_alive_max_seconds gauge</span></span><br><span class="line">tomcat_sessions_alive_max_seconds 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_buffer_count_buffers An estimate of the number of buffers <span class="keyword">in</span> the pool</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_buffer_count_buffers gauge</span></span><br><span class="line">jvm_buffer_count_buffers&#123;id=&quot;direct&quot;,&#125; 97.0</span><br><span class="line">jvm_buffer_count_buffers&#123;id=&quot;mapped&quot;,&#125; 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP process_cpu_usage The <span class="string">&quot;recent cpu usage&quot;</span> <span class="keyword">for</span> the Java Virtual Machine process</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE process_cpu_usage gauge</span></span><br><span class="line">process_cpu_usage 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_servlet_error_total</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_servlet_error_total counter</span></span><br><span class="line">tomcat_servlet_error_total&#123;name=&quot;default&quot;,&#125; 0.0</span><br><span class="line">tomcat_servlet_error_total&#123;name=&quot;jsp&quot;,&#125; 0.0</span><br><span class="line">tomcat_servlet_error_total&#123;name=&quot;dispatcherServlet&quot;,&#125; 0.0</span><br><span class="line">tomcat_servlet_error_total&#123;name=&quot;cn.taqu.core.web.filter.ApiDispatcherServlet&quot;,&#125; 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_global_request_seconds</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_global_request_seconds summary</span></span><br><span class="line">tomcat_global_request_seconds_count&#123;name=&quot;http-nio-8906&quot;,&#125; 82.0</span><br><span class="line">tomcat_global_request_seconds_sum&#123;name=&quot;http-nio-8906&quot;,&#125; 3.117</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_cache_access_total</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_cache_access_total counter</span></span><br><span class="line">tomcat_cache_access_total 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP process_uptime_seconds The <span class="built_in">uptime</span> of the Java virtual machine</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE process_uptime_seconds gauge</span></span><br><span class="line">process_uptime_seconds 88.809</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_global_request_max_seconds</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_global_request_max_seconds gauge</span></span><br><span class="line">tomcat_global_request_max_seconds&#123;name=&quot;http-nio-8906&quot;,&#125; 1.246</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_sessions_active_max_sessions</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_sessions_active_max_sessions gauge</span></span><br><span class="line">tomcat_sessions_active_max_sessions 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_sessions_created_sessions_total</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_sessions_created_sessions_total counter</span></span><br><span class="line">tomcat_sessions_created_sessions_total 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP process_start_time_seconds Start time of the process since unix epoch.</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE process_start_time_seconds gauge</span></span><br><span class="line">process_start_time_seconds 1.610695930801E9</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_threads_live_threads The current number of live threads including both daemon and non-daemon threads</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_threads_live_threads gauge</span></span><br><span class="line">jvm_threads_live_threads 343.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP logback_events_total Number of error level events that made it to the logs</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE logback_events_total counter</span></span><br><span class="line">logback_events_total&#123;level=&quot;warn&quot;,&#125; 0.0</span><br><span class="line">logback_events_total&#123;level=&quot;debug&quot;,&#125; 0.0</span><br><span class="line">logback_events_total&#123;level=&quot;error&quot;,&#125; 0.0</span><br><span class="line">logback_events_total&#123;level=&quot;trace&quot;,&#125; 0.0</span><br><span class="line">logback_events_total&#123;level=&quot;info&quot;,&#125; 19.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_threads_config_max_threads</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_threads_config_max_threads gauge</span></span><br><span class="line">tomcat_threads_config_max_threads&#123;name=&quot;http-nio-8906&quot;,&#125; NaN</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_threads_states_threads The current number of threads having NEW state</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_threads_states_threads gauge</span></span><br><span class="line">jvm_threads_states_threads&#123;state=&quot;runnable&quot;,&#125; 117.0</span><br><span class="line">jvm_threads_states_threads&#123;state=&quot;blocked&quot;,&#125; 0.0</span><br><span class="line">jvm_threads_states_threads&#123;state=&quot;waiting&quot;,&#125; 209.0</span><br><span class="line">jvm_threads_states_threads&#123;state=&quot;timed-waiting&quot;,&#125; 17.0</span><br><span class="line">jvm_threads_states_threads&#123;state=&quot;new&quot;,&#125; 0.0</span><br><span class="line">jvm_threads_states_threads&#123;state=&quot;terminated&quot;,&#125; 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP system_cpu_count The number of processors available to the Java virtual machine</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE system_cpu_count gauge</span></span><br><span class="line">system_cpu_count 12.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP http_server_requests_seconds</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE http_server_requests_seconds summary</span></span><br><span class="line">http_server_requests_seconds_count&#123;exception=&quot;None&quot;,method=&quot;GET&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/index&quot;,&#125; 2.0</span><br><span class="line">http_server_requests_seconds_sum&#123;exception=&quot;None&quot;,method=&quot;GET&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/index&quot;,&#125; 0.8098944</span><br><span class="line">http_server_requests_seconds_count&#123;exception=&quot;None&quot;,method=&quot;POST&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;root&quot;,&#125; 1.0</span><br><span class="line">http_server_requests_seconds_sum&#123;exception=&quot;None&quot;,method=&quot;POST&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;root&quot;,&#125; 0.0271729</span><br><span class="line">http_server_requests_seconds_count&#123;exception=&quot;None&quot;,method=&quot;GET&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/**&quot;,&#125; 73.0</span><br><span class="line">http_server_requests_seconds_sum&#123;exception=&quot;None&quot;,method=&quot;GET&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/**&quot;,&#125; 0.4981964</span><br><span class="line">http_server_requests_seconds_count&#123;exception=&quot;None&quot;,method=&quot;POST&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/common/getLanguageList&quot;,&#125; 2.0</span><br><span class="line">http_server_requests_seconds_sum&#123;exception=&quot;None&quot;,method=&quot;POST&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/common/getLanguageList&quot;,&#125; 0.0204194</span><br><span class="line">http_server_requests_seconds_count&#123;exception=&quot;None&quot;,method=&quot;POST&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/inspectRule/dataGrid&quot;,&#125; 1.0</span><br><span class="line">http_server_requests_seconds_sum&#123;exception=&quot;None&quot;,method=&quot;POST&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/inspectRule/dataGrid&quot;,&#125; 1.2461368</span><br><span class="line">http_server_requests_seconds_count&#123;exception=&quot;None&quot;,method=&quot;GET&quot;,outcome=&quot;REDIRECTION&quot;,status=&quot;302&quot;,uri=&quot;REDIRECTION&quot;,&#125; 1.0</span><br><span class="line">http_server_requests_seconds_sum&#123;exception=&quot;None&quot;,method=&quot;GET&quot;,outcome=&quot;REDIRECTION&quot;,status=&quot;302&quot;,uri=&quot;REDIRECTION&quot;,&#125; 0.1364228</span><br><span class="line">http_server_requests_seconds_count&#123;exception=&quot;None&quot;,method=&quot;GET&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/inspectRule/manager&quot;,&#125; 1.0</span><br><span class="line">http_server_requests_seconds_sum&#123;exception=&quot;None&quot;,method=&quot;GET&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/inspectRule/manager&quot;,&#125; 0.1832796</span><br><span class="line">http_server_requests_seconds_count&#123;exception=&quot;None&quot;,method=&quot;POST&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/user/addServiceSystemLog&quot;,&#125; 1.0</span><br><span class="line">http_server_requests_seconds_sum&#123;exception=&quot;None&quot;,method=&quot;POST&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/user/addServiceSystemLog&quot;,&#125; 0.0549094</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP http_server_requests_seconds_max</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE http_server_requests_seconds_max gauge</span></span><br><span class="line">http_server_requests_seconds_max&#123;exception=&quot;None&quot;,method=&quot;GET&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/index&quot;,&#125; 0.6628419</span><br><span class="line">http_server_requests_seconds_max&#123;exception=&quot;None&quot;,method=&quot;POST&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;root&quot;,&#125; 0.0271729</span><br><span class="line">http_server_requests_seconds_max&#123;exception=&quot;None&quot;,method=&quot;GET&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/**&quot;,&#125; 0.0253742</span><br><span class="line">http_server_requests_seconds_max&#123;exception=&quot;None&quot;,method=&quot;POST&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/common/getLanguageList&quot;,&#125; 0.0133106</span><br><span class="line">http_server_requests_seconds_max&#123;exception=&quot;None&quot;,method=&quot;POST&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/inspectRule/dataGrid&quot;,&#125; 1.2461368</span><br><span class="line">http_server_requests_seconds_max&#123;exception=&quot;None&quot;,method=&quot;GET&quot;,outcome=&quot;REDIRECTION&quot;,status=&quot;302&quot;,uri=&quot;REDIRECTION&quot;,&#125; 0.1364228</span><br><span class="line">http_server_requests_seconds_max&#123;exception=&quot;None&quot;,method=&quot;GET&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/inspectRule/manager&quot;,&#125; 0.1832796</span><br><span class="line">http_server_requests_seconds_max&#123;exception=&quot;None&quot;,method=&quot;POST&quot;,outcome=&quot;SUCCESS&quot;,status=&quot;200&quot;,uri=&quot;/user/addServiceSystemLog&quot;,&#125; 0.0549094</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_gc_memory_allocated_bytes_total Incremented <span class="keyword">for</span> an increase <span class="keyword">in</span> the size of the young generation memory pool after one GC to before the next</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_gc_memory_allocated_bytes_total counter</span></span><br><span class="line">jvm_gc_memory_allocated_bytes_total 2.345259752E9</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_buffer_total_capacity_bytes An estimate of the total capacity of the buffers <span class="keyword">in</span> this pool</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_buffer_total_capacity_bytes gauge</span></span><br><span class="line">jvm_buffer_total_capacity_bytes&#123;id=&quot;direct&quot;,&#125; 712848.0</span><br><span class="line">jvm_buffer_total_capacity_bytes&#123;id=&quot;mapped&quot;,&#125; 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_gc_memory_promoted_bytes_total Count of positive increases <span class="keyword">in</span> the size of the old generation memory pool before GC to after GC</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_gc_memory_promoted_bytes_total counter</span></span><br><span class="line">jvm_gc_memory_promoted_bytes_total 4.7747424E7</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_buffer_memory_used_bytes An estimate of the memory that the Java virtual machine is using <span class="keyword">for</span> this buffer pool</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_buffer_memory_used_bytes gauge</span></span><br><span class="line">jvm_buffer_memory_used_bytes&#123;id=&quot;direct&quot;,&#125; 712849.0</span><br><span class="line">jvm_buffer_memory_used_bytes&#123;id=&quot;mapped&quot;,&#125; 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_gc_pause_seconds Time spent <span class="keyword">in</span> GC pause</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_gc_pause_seconds summary</span></span><br><span class="line">jvm_gc_pause_seconds_count&#123;action=&quot;end of major GC&quot;,cause=&quot;Metadata GC Threshold&quot;,&#125; 1.0</span><br><span class="line">jvm_gc_pause_seconds_sum&#123;action=&quot;end of major GC&quot;,cause=&quot;Metadata GC Threshold&quot;,&#125; 0.136</span><br><span class="line">jvm_gc_pause_seconds_count&#123;action=&quot;end of minor GC&quot;,cause=&quot;Metadata GC Threshold&quot;,&#125; 1.0</span><br><span class="line">jvm_gc_pause_seconds_sum&#123;action=&quot;end of minor GC&quot;,cause=&quot;Metadata GC Threshold&quot;,&#125; 0.013</span><br><span class="line">jvm_gc_pause_seconds_count&#123;action=&quot;end of minor GC&quot;,cause=&quot;Allocation Failure&quot;,&#125; 6.0</span><br><span class="line">jvm_gc_pause_seconds_sum&#123;action=&quot;end of minor GC&quot;,cause=&quot;Allocation Failure&quot;,&#125; 0.069</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_gc_pause_seconds_max Time spent <span class="keyword">in</span> GC pause</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_gc_pause_seconds_max gauge</span></span><br><span class="line">jvm_gc_pause_seconds_max&#123;action=&quot;end of major GC&quot;,cause=&quot;Metadata GC Threshold&quot;,&#125; 0.136</span><br><span class="line">jvm_gc_pause_seconds_max&#123;action=&quot;end of minor GC&quot;,cause=&quot;Metadata GC Threshold&quot;,&#125; 0.013</span><br><span class="line">jvm_gc_pause_seconds_max&#123;action=&quot;end of minor GC&quot;,cause=&quot;Allocation Failure&quot;,&#125; 0.023</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_threads_current_threads</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_threads_current_threads gauge</span></span><br><span class="line">tomcat_threads_current_threads&#123;name=&quot;http-nio-8906&quot;,&#125; NaN</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_global_error_total</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_global_error_total counter</span></span><br><span class="line">tomcat_global_error_total&#123;name=&quot;http-nio-8906&quot;,&#125; 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_threads_daemon_threads The current number of live daemon threads</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_threads_daemon_threads gauge</span></span><br><span class="line">jvm_threads_daemon_threads 237.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_cache_hit_total</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_cache_hit_total counter</span></span><br><span class="line">tomcat_cache_hit_total 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_threads_busy_threads</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_threads_busy_threads gauge</span></span><br><span class="line">tomcat_threads_busy_threads&#123;name=&quot;http-nio-8906&quot;,&#125; NaN</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_servlet_request_max_seconds</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_servlet_request_max_seconds gauge</span></span><br><span class="line">tomcat_servlet_request_max_seconds&#123;name=&quot;default&quot;,&#125; 0.0</span><br><span class="line">tomcat_servlet_request_max_seconds&#123;name=&quot;jsp&quot;,&#125; 0.0</span><br><span class="line">tomcat_servlet_request_max_seconds&#123;name=&quot;dispatcherServlet&quot;,&#125; 1.246</span><br><span class="line">tomcat_servlet_request_max_seconds&#123;name=&quot;cn.taqu.core.web.filter.ApiDispatcherServlet&quot;,&#125; 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_threads_peak_threads The peak live thread count since the Java virtual machine started or peak was reset</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_threads_peak_threads gauge</span></span><br><span class="line">jvm_threads_peak_threads 345.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_classes_unloaded_classes_total The total number of classes unloaded since the Java virtual machine has started execution</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_classes_unloaded_classes_total counter</span></span><br><span class="line">jvm_classes_unloaded_classes_total 3.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_memory_committed_bytes The amount of memory <span class="keyword">in</span> bytes that is committed <span class="keyword">for</span> the Java virtual machine to use</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_memory_committed_bytes gauge</span></span><br><span class="line">jvm_memory_committed_bytes&#123;area=&quot;heap&quot;,id=&quot;PS Survivor Space&quot;,&#125; 3.2505856E7</span><br><span class="line">jvm_memory_committed_bytes&#123;area=&quot;heap&quot;,id=&quot;PS Old Gen&quot;,&#125; 2.36453888E8</span><br><span class="line">jvm_memory_committed_bytes&#123;area=&quot;heap&quot;,id=&quot;PS Eden Space&quot;,&#125; 4.97549312E8</span><br><span class="line">jvm_memory_committed_bytes&#123;area=&quot;nonheap&quot;,id=&quot;Metaspace&quot;,&#125; 9.76896E7</span><br><span class="line">jvm_memory_committed_bytes&#123;area=&quot;nonheap&quot;,id=&quot;Code Cache&quot;,&#125; 2.0709376E7</span><br><span class="line">jvm_memory_committed_bytes&#123;area=&quot;nonheap&quot;,id=&quot;Compressed Class Space&quot;,&#125; 1.1976704E7</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_sessions_active_current_sessions</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_sessions_active_current_sessions gauge</span></span><br><span class="line">tomcat_sessions_active_current_sessions 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_sessions_expired_sessions_total</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_sessions_expired_sessions_total counter</span></span><br><span class="line">tomcat_sessions_expired_sessions_total 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_global_sent_bytes_total</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_global_sent_bytes_total counter</span></span><br><span class="line">tomcat_global_sent_bytes_total&#123;name=&quot;http-nio-8906&quot;,&#125; 2920966.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_gc_live_data_size_bytes Size of old generation memory pool after a full GC</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_gc_live_data_size_bytes gauge</span></span><br><span class="line">jvm_gc_live_data_size_bytes 4.3797632E7</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_memory_max_bytes The maximum amount of memory <span class="keyword">in</span> bytes that can be used <span class="keyword">for</span> memory management</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_memory_max_bytes gauge</span></span><br><span class="line">jvm_memory_max_bytes&#123;area=&quot;heap&quot;,id=&quot;PS Survivor Space&quot;,&#125; 3.2505856E7</span><br><span class="line">jvm_memory_max_bytes&#123;area=&quot;heap&quot;,id=&quot;PS Old Gen&quot;,&#125; 2.841116672E9</span><br><span class="line">jvm_memory_max_bytes&#123;area=&quot;heap&quot;,id=&quot;PS Eden Space&quot;,&#125; 1.344274432E9</span><br><span class="line">jvm_memory_max_bytes&#123;area=&quot;nonheap&quot;,id=&quot;Metaspace&quot;,&#125; -1.0</span><br><span class="line">jvm_memory_max_bytes&#123;area=&quot;nonheap&quot;,id=&quot;Code Cache&quot;,&#125; 2.5165824E8</span><br><span class="line">jvm_memory_max_bytes&#123;area=&quot;nonheap&quot;,id=&quot;Compressed Class Space&quot;,&#125; 1.073741824E9</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_global_received_bytes_total</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_global_received_bytes_total counter</span></span><br><span class="line">tomcat_global_received_bytes_total&#123;name=&quot;http-nio-8906&quot;,&#125; 118.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_gc_max_data_size_bytes Max size of old generation memory pool</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_gc_max_data_size_bytes gauge</span></span><br><span class="line">jvm_gc_max_data_size_bytes 2.841116672E9</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_memory_used_bytes The amount of used memory</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_memory_used_bytes gauge</span></span><br><span class="line">jvm_memory_used_bytes&#123;area=&quot;heap&quot;,id=&quot;PS Survivor Space&quot;,&#125; 3.2479312E7</span><br><span class="line">jvm_memory_used_bytes&#123;area=&quot;heap&quot;,id=&quot;PS Old Gen&quot;,&#125; 6.7252472E7</span><br><span class="line">jvm_memory_used_bytes&#123;area=&quot;heap&quot;,id=&quot;PS Eden Space&quot;,&#125; 4.5849296E7</span><br><span class="line">jvm_memory_used_bytes&#123;area=&quot;nonheap&quot;,id=&quot;Metaspace&quot;,&#125; 9.2626808E7</span><br><span class="line">jvm_memory_used_bytes&#123;area=&quot;nonheap&quot;,id=&quot;Code Cache&quot;,&#125; 2.063232E7</span><br><span class="line">jvm_memory_used_bytes&#123;area=&quot;nonheap&quot;,id=&quot;Compressed Class Space&quot;,&#125; 1.1170784E7</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP system_cpu_usage The <span class="string">&quot;recent cpu usage&quot;</span> <span class="keyword">for</span> the whole system</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE system_cpu_usage gauge</span></span><br><span class="line">system_cpu_usage 0.3472113977877134</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP tomcat_servlet_request_seconds</span>  </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE tomcat_servlet_request_seconds summary</span></span><br><span class="line">tomcat_servlet_request_seconds_count&#123;name=&quot;default&quot;,&#125; 0.0</span><br><span class="line">tomcat_servlet_request_seconds_sum&#123;name=&quot;default&quot;,&#125; 0.0</span><br><span class="line">tomcat_servlet_request_seconds_count&#123;name=&quot;jsp&quot;,&#125; 0.0</span><br><span class="line">tomcat_servlet_request_seconds_sum&#123;name=&quot;jsp&quot;,&#125; 0.0</span><br><span class="line">tomcat_servlet_request_seconds_count&#123;name=&quot;dispatcherServlet&quot;,&#125; 83.0</span><br><span class="line">tomcat_servlet_request_seconds_sum&#123;name=&quot;dispatcherServlet&quot;,&#125; 3.0</span><br><span class="line">tomcat_servlet_request_seconds_count&#123;name=&quot;cn.taqu.core.web.filter.ApiDispatcherServlet&quot;,&#125; 0.0</span><br><span class="line">tomcat_servlet_request_seconds_sum&#123;name=&quot;cn.taqu.core.web.filter.ApiDispatcherServlet&quot;,&#125; 0.0</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">HELP jvm_classes_loaded_classes The number of classes that are currently loaded <span class="keyword">in</span> the Java virtual machine</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">TYPE jvm_classes_loaded_classes gauge</span></span><br><span class="line">jvm_classes_loaded_classes 15999.0</span><br></pre></td></tr></table></figure>
+
+</details>
+
+<h3 id="Actuator-端点说明"><a href="#Actuator-端点说明" class="headerlink" title="Actuator 端点说明"></a>Actuator 端点说明</h3><details>
+
+<ul>
+<li>auditevents：获取当前应用暴露的审计事件信息</li>
+<li>beans：获取应用中所有的 Spring Beans 的完整关系列表</li>
+<li>caches：获取公开可以用的缓存</li>
+<li>conditions：获取自动配置条件信息，记录哪些自动配置条件通过和没通过的原因</li>
+<li>configprops：获取所有配置属性，包括默认配置，显示一个所有 @ConfigurationProperties 的整理列版本</li>
+<li>env：获取所有环境变量</li>
+<li>flyway：获取已应用的所有Flyway数据库迁移信息，需要一个或多个 Flyway Bean</li>
+<li>liquibase：获取已应用的所有Liquibase数据库迁移。需要一个或多个 Liquibase Bean</li>
+<li>health：获取应用程序健康指标（运行状况信息）</li>
+<li>httptrace：获取HTTP跟踪信息（默认情况下，最近100个HTTP请求-响应交换）。需要 HttpTraceRepository Bean</li>
+<li>info：获取应用程序信息</li>
+<li>integrationgraph：显示 Spring Integration 图。需要依赖 spring-integration-core</li>
+<li>loggers：显示和修改应用程序中日志的配置</li>
+<li>logfile：返回日志文件的内容（如果已设置logging.file.name或logging.file.path属性）</li>
+<li>metrics：获取系统度量指标信息</li>
+<li>mappings：显示所有@RequestMapping路径的整理列表</li>
+<li>scheduledtasks：显示应用程序中的计划任务</li>
+<li>sessions：允许从Spring Session支持的会话存储中检索和删除用户会话。需要使用Spring Session的基于Servlet的Web应用程序</li>
+<li>shutdown：关闭应用，要求endpoints.shutdown.enabled设置为true，默认为 false</li>
+<li>threaddump：获取系统线程转储信息</li>
+<li>heapdump：返回hprof堆转储文件</li>
+<li>jolokia：通过HTTP公开JMX bean（当Jolokia在类路径上时，不适用于WebFlux）。需要依赖 jolokia-core</li>
+<li>prometheus：以Prometheus服务器可以抓取的格式公开指标。需要依赖 micrometer-registry-prometheus</li>
+</ul>
+</details>
+
+<h3 id="Prometheus-x2F-Metrics-端点说明"><a href="#Prometheus-x2F-Metrics-端点说明" class="headerlink" title="Prometheus&#x2F;Metrics 端点说明"></a>Prometheus&#x2F;Metrics 端点说明</h3><details>
+
+
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>参数</th>
+<th>参数说明</th>
+<th>是否监控</th>
+<th>监控手段</th>
+<th>重要度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>—</td>
+<td>JVM</td>
+<td>—</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>1</td>
+<td>jvm.memory.max</td>
+<td>JVM最大内存</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td>jvm.memory.committed</td>
+<td>JVM可用内存</td>
+<td>是</td>
+<td>展示并监控堆内存和Metaspace</td>
+<td>重要</td>
+</tr>
+<tr>
+<td>3</td>
+<td>jvm.memory.used</td>
+<td>JVM已用内存</td>
+<td>是</td>
+<td>展示并监控堆内存和Metaspace</td>
+<td>重要</td>
+</tr>
+<tr>
+<td>4</td>
+<td>jvm.buffer.memory.used</td>
+<td>JVM缓冲区已用内存</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>5</td>
+<td>jvm.buffer.count</td>
+<td>当前缓冲区数</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>6</td>
+<td>jvm.threads.daemon</td>
+<td>JVM守护线程数</td>
+<td>是</td>
+<td>显示在监控页面</td>
+<td></td>
+</tr>
+<tr>
+<td>7</td>
+<td>jvm.threads.live</td>
+<td>JVM当前活跃线程数</td>
+<td>是</td>
+<td>显示在监控页面；监控达到阈值时报警</td>
+<td>重要</td>
+</tr>
+<tr>
+<td>8</td>
+<td>jvm.threads.peak</td>
+<td>JVM峰值线程数</td>
+<td>是</td>
+<td>显示在监控页面</td>
+<td></td>
+</tr>
+<tr>
+<td>9</td>
+<td>jvm.classes.loaded</td>
+<td>加载classes数</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>10</td>
+<td>jvm.classes.unloaded</td>
+<td>未加载的classes数</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>11</td>
+<td>jvm.gc.memory.allocated</td>
+<td>GC时，年轻代分配的内存空间</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>12</td>
+<td>jvm.gc.memory.promoted</td>
+<td>GC时，老年代分配的内存空间</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>13</td>
+<td>jvm.gc.max.data.size</td>
+<td>GC时，老年代的最大内存空间</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>14</td>
+<td>jvm.gc.live.data.size</td>
+<td>FullGC时，老年代的内存空间</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>15</td>
+<td>jvm.gc.pause</td>
+<td>GC耗时</td>
+<td>是</td>
+<td>显示在监控页面</td>
+<td></td>
+</tr>
+<tr>
+<td>—</td>
+<td>TOMCAT</td>
+<td>—</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>16</td>
+<td>tomcat.sessions.created</td>
+<td>tomcat已创建session数</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>17</td>
+<td>tomcat.sessions.expired</td>
+<td>tomcat已过期session数</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>18</td>
+<td>tomcat.sessions.active.current</td>
+<td>tomcat活跃session数</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>19</td>
+<td>tomcat.sessions.active.max</td>
+<td>tomcat最多活跃session数</td>
+<td>是</td>
+<td>显示在监控页面，超过阈值可报警或者进行动态扩容</td>
+<td>重要</td>
+</tr>
+<tr>
+<td>20</td>
+<td>tomcat.sessions.alive.max.second</td>
+<td>tomcat最多活跃session数持续时间</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>21</td>
+<td>tomcat.sessions.rejected</td>
+<td>超过session最大配置后，拒绝的session个数</td>
+<td>是</td>
+<td>显示在监控页面，方便分析问题</td>
+<td></td>
+</tr>
+<tr>
+<td>22</td>
+<td>tomcat.global.error</td>
+<td>错误总数</td>
+<td>是</td>
+<td>显示在监控页面，方便分析问题</td>
+<td></td>
+</tr>
+<tr>
+<td>23</td>
+<td>tomcat.global.sent</td>
+<td>发送的字节数</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>24</td>
+<td>tomcat.global.request.max</td>
+<td>request最长时间</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>25</td>
+<td>tomcat.global.request</td>
+<td>全局request次数和时间</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>26</td>
+<td>tomcat.global.received</td>
+<td>全局received次数和时间</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>27</td>
+<td>tomcat.servlet.request</td>
+<td>servlet的请求次数和时间</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>28</td>
+<td>tomcat.servlet.error</td>
+<td>servlet发生错误总数</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>29</td>
+<td>tomcat.servlet.request.max</td>
+<td>servlet请求最长时间</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>30</td>
+<td>tomcat.threads.busy</td>
+<td>tomcat繁忙线程</td>
+<td>是</td>
+<td>显示在监控页面，据此检查是否有线程夯住</td>
+<td></td>
+</tr>
+<tr>
+<td>31</td>
+<td>tomcat.threads.current</td>
+<td>tomcat当前线程数（包括守护线程）</td>
+<td>是</td>
+<td>显示在监控页面</td>
+<td>重要</td>
+</tr>
+<tr>
+<td>32</td>
+<td>tomcat.threads.config.max</td>
+<td>tomcat配置的线程最大数</td>
+<td>是</td>
+<td>显示在监控页面</td>
+<td>重要</td>
+</tr>
+<tr>
+<td>33</td>
+<td>tomcat.cache.access</td>
+<td>tomcat读取缓存次数</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>34</td>
+<td>tomcat.cache.hit</td>
+<td>tomcat缓存命中次数</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>—</td>
+<td>CPU…</td>
+<td>—</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>35</td>
+<td>system.cpu.count</td>
+<td>CPU数量</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>36</td>
+<td>system.load.average.1m</td>
+<td>load average</td>
+<td>是</td>
+<td>超过阈值报警</td>
+<td>重要</td>
+</tr>
+<tr>
+<td>37</td>
+<td>system.cpu.usage</td>
+<td>系统CPU使用率</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>38</td>
+<td>process.cpu.usage</td>
+<td>当前进程CPU使用率</td>
+<td>是</td>
+<td>超过阈值报警</td>
+<td></td>
+</tr>
+<tr>
+<td>39</td>
+<td>http.server.requests</td>
+<td>http请求调用情况</td>
+<td>是</td>
+<td>显示10个请求量最大，耗时最长的URL；统计非200的请求量</td>
+<td>重要</td>
+</tr>
+<tr>
+<td>40</td>
+<td>process.uptime</td>
+<td>应用已运行时间</td>
+<td>是</td>
+<td>显示在监控页面</td>
+<td></td>
+</tr>
+<tr>
+<td>41</td>
+<td>process.files.max</td>
+<td>允许最大句柄数</td>
+<td>是</td>
+<td>配合当前打开句柄数使用</td>
+<td></td>
+</tr>
+<tr>
+<td>42</td>
+<td>process.start.time</td>
+<td>应用启动时间点</td>
+<td>是</td>
+<td>显示在监控页面</td>
+<td></td>
+</tr>
+<tr>
+<td>43</td>
+<td>process.files.open</td>
+<td>当前打开句柄数</td>
+<td>是</td>
+<td>监控文件句柄使用率，超过阈值后报警</td>
+<td>重要</td>
+</tr>
+</tbody></table>
+</details>
+
+
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><ul>
+<li><a target="_blank" rel="noopener" href="http://autumn200.com/2020/07/04/spring-boot-actuator/">Spring Boot Actuator:健康检查、审计、统计和监控</a></li>
+<li><a target="_blank" rel="noopener" href="http://autumn200.com/2020/07/05/spring-boot-actuator-metrics/">Spring Boot Metrics监控之Prometheus&amp;Grafana</a></li>
+<li><a target="_blank" rel="noopener" href="http://www.tangsong.fun/index.php/Prometheus2.html">[Prometheus]实战：SpringBoot + Actuator metrics + Prometheus</a></li>
+<li><a target="_blank" rel="noopener" href="https://dbaplus.cn/news-134-4080-1.html">实战搭建Prometheus监控系统，看完不信你还不会</a></li>
+</ul>
+</div><div class="article-tags is-size-7 mb-4"><span class="mr-2">#</span><a class="link-muted mr-2" rel="tag" href="/tags/spring/">spring</a><a class="link-muted mr-2" rel="tag" href="/tags/metrics/">metrics</a></div><!--!--></article></div><!--!--><nav class="post-navigation mt-4 level is-mobile"><div class="level-start"><a class="article-nav-prev level level-item link-muted" href="/2022/04/13/spring/spring-object-storage/"><i class="level-item fas fa-chevron-left"></i><span class="level-item">Object Storage</span></a></div><div class="level-end"><a class="article-nav-next level level-item link-muted" href="/2022/04/13/spring/spring-redis-read-timeout/"><span class="level-item">jedis/lettuce timeout</span><i class="level-item fas fa-chevron-right"></i></a></div></nav><div class="card"><div class="card-content"><h3 class="title is-5">评论</h3><div id="comment-container"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1.7.2/dist/gitalk.css"><script src="https://cdn.jsdelivr.net/npm/gitalk@1.7.2/dist/gitalk.min.js"></script><script>var gitalk = new Gitalk({
+            id: "736caebbc460e8ead4380ca4ed8e246b",
+            repo: "luochunhai.github.io",
+            owner: "luochunhai",
+            clientID: "f9e12149d698e263599f",
+            clientSecret: "5b76add2cdaa3ec47402cde6dc3bb5d913c7c48c",
+            admin: ["luochunhai"],
+            createIssueManually: false,
+            distractionFreeMode: false,
+            perPage: 20,
+            pagerDirection: "last",
+            
+            
+            enableHotKey: true,
+            
+        })
+        gitalk.render('comment-container')</script></div></div></div><div class="column column-left is-4-tablet is-4-desktop is-2-widescreen  order-1 is-sticky"><div class="card widget" data-type="profile"><div class="card-content"><nav class="level"><div class="level-item has-text-centered flex-shrink-1"><div><figure class="image is-128x128 mx-auto mb-2"><img class="avatar" src="/img/avatar.png" alt="Luo Chunhai"></figure><p class="title is-size-4 is-block" style="line-height:inherit;">Luo Chunhai</p><p class="is-size-6 is-block">Developer</p><p class="is-size-6 is-flex justify-content-center"><i class="fas fa-map-marker-alt mr-1"></i><span>四川·成都</span></p></div></div></nav><nav class="level is-mobile"><div class="level-item has-text-centered is-marginless"><div><p class="heading">文章</p><a href="/archives"><p class="title">188</p></a></div></div><div class="level-item has-text-centered is-marginless"><div><p class="heading">分类</p><a href="/categories"><p class="title">87</p></a></div></div><div class="level-item has-text-centered is-marginless"><div><p class="heading">标签</p><a href="/tags"><p class="title">64</p></a></div></div></nav><div class="level"><a class="level-item button is-primary is-rounded" href="https://github.com/luochunhai" target="_blank" rel="noopener">关注我</a></div></div></div><div class="card widget" data-type="categories"><div class="card-content"><div class="menu"><h3 class="menu-label">分类</h3><ul class="menu-list"><li><a class="level is-mobile" href="/categories/cubrid/"><span class="level-start"><span class="level-item">cubrid</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/docker/"><span class="level-start"><span class="level-item">docker</span></span><span class="level-end"><span class="level-item tag">10</span></span></a><ul><li><a class="level is-mobile" href="/categories/docker/docker-compose/"><span class="level-start"><span class="level-item">docker compose</span></span><span class="level-end"><span class="level-item tag">6</span></span></a></li><li><a class="level is-mobile" href="/categories/docker/install/"><span class="level-start"><span class="level-item">install</span></span><span class="level-end"><span class="level-item tag">2</span></span></a></li><li><a class="level is-mobile" href="/categories/docker/network/"><span class="level-start"><span class="level-item">network</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li></ul></li><li><a class="level is-mobile" href="/categories/frontend/"><span class="level-start"><span class="level-item">frontend</span></span><span class="level-end"><span class="level-item tag">7</span></span></a><ul><li><a class="level is-mobile" href="/categories/frontend/hexo/"><span class="level-start"><span class="level-item">hexo</span></span><span class="level-end"><span class="level-item tag">5</span></span></a></li><li><a class="level is-mobile" href="/categories/frontend/http-server/"><span class="level-start"><span class="level-item">http-server</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/frontend/js/"><span class="level-start"><span class="level-item">js</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li></ul></li><li><a class="level is-mobile" href="/categories/game-engine/"><span class="level-start"><span class="level-item">game engine</span></span><span class="level-end"><span class="level-item tag">3</span></span></a><ul><li><a class="level is-mobile" href="/categories/game-engine/cocos/"><span class="level-start"><span class="level-item">cocos</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/game-engine/unity/"><span class="level-start"><span class="level-item">unity</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/game-engine/unreal/"><span class="level-start"><span class="level-item">unreal</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li></ul></li><li><a class="level is-mobile" href="/categories/git/"><span class="level-start"><span class="level-item">git</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/java/"><span class="level-start"><span class="level-item">java</span></span><span class="level-end"><span class="level-item tag">32</span></span></a><ul><li><a class="level is-mobile" href="/categories/java/gc/"><span class="level-start"><span class="level-item">gc</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/java/hashmap/"><span class="level-start"><span class="level-item">hashmap</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/java/jdk8/"><span class="level-start"><span class="level-item">jdk8</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/java/juc/"><span class="level-start"><span class="level-item">juc</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/java/jvm/"><span class="level-start"><span class="level-item">jvm</span></span><span class="level-end"><span class="level-item tag">3</span></span></a></li><li><a class="level is-mobile" href="/categories/java/oom/"><span class="level-start"><span class="level-item">oom</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/java/quarkus/"><span class="level-start"><span class="level-item">quarkus</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/java/redis/"><span class="level-start"><span class="level-item">redis</span></span><span class="level-end"><span class="level-item tag">2</span></span></a></li><li><a class="level is-mobile" href="/categories/java/volatile/"><span class="level-start"><span class="level-item">volatile</span></span><span class="level-end"><span class="level-item tag">2</span></span></a></li><li><a class="level is-mobile" href="/categories/java/%E5%B9%B6%E5%8F%91/"><span class="level-start"><span class="level-item">并发</span></span><span class="level-end"><span class="level-item tag">2</span></span></a></li></ul></li><li><a class="level is-mobile" href="/categories/jedis/"><span class="level-start"><span class="level-item">jedis</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/kubernetes/"><span class="level-start"><span class="level-item">kubernetes</span></span><span class="level-end"><span class="level-item tag">7</span></span></a></li><li><a class="level is-mobile" href="/categories/leetcode/"><span class="level-start"><span class="level-item">leetcode</span></span><span class="level-end"><span class="level-item tag">7</span></span></a></li><li><a class="level is-mobile" href="/categories/linux/"><span class="level-start"><span class="level-item">linux</span></span><span class="level-end"><span class="level-item tag">24</span></span></a><ul><li><a class="level is-mobile" href="/categories/linux/ansible/"><span class="level-start"><span class="level-item">ansible</span></span><span class="level-end"><span class="level-item tag">7</span></span></a></li><li><a class="level is-mobile" href="/categories/linux/centos/"><span class="level-start"><span class="level-item">centos</span></span><span class="level-end"><span class="level-item tag">8</span></span></a><ul><li><a class="level is-mobile" href="/categories/linux/centos/jdk/"><span class="level-start"><span class="level-item">jdk</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/linux/centos/jenkins/"><span class="level-start"><span class="level-item">jenkins</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/linux/centos/maven/"><span class="level-start"><span class="level-item">maven</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/linux/centos/mysql/"><span class="level-start"><span class="level-item">mysql</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/linux/centos/nginx/"><span class="level-start"><span class="level-item">nginx</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li></ul></li><li><a class="level is-mobile" href="/categories/linux/git/"><span class="level-start"><span class="level-item">git</span></span><span class="level-end"><span class="level-item tag">3</span></span></a></li><li><a class="level is-mobile" href="/categories/linux/ubuntu/"><span class="level-start"><span class="level-item">ubuntu</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li></ul></li><li><a class="level is-mobile" href="/categories/mongodb/"><span class="level-start"><span class="level-item">mongodb</span></span><span class="level-end"><span class="level-item tag">2</span></span></a></li><li><a class="level is-mobile" href="/categories/mysql/"><span class="level-start"><span class="level-item">mysql</span></span><span class="level-end"><span class="level-item tag">4</span></span></a></li><li><a class="level is-mobile" href="/categories/netty/"><span class="level-start"><span class="level-item">netty</span></span><span class="level-end"><span class="level-item tag">3</span></span></a></li><li><a class="level is-mobile" href="/categories/network/"><span class="level-start"><span class="level-item">network</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/nginx/"><span class="level-start"><span class="level-item">nginx</span></span><span class="level-end"><span class="level-item tag">12</span></span></a></li><li><a class="level is-mobile" href="/categories/opencv/"><span class="level-start"><span class="level-item">opencv</span></span><span class="level-end"><span class="level-item tag">2</span></span></a></li><li><a class="level is-mobile" href="/categories/python/"><span class="level-start"><span class="level-item">python</span></span><span class="level-end"><span class="level-item tag">2</span></span></a></li><li><a class="level is-mobile" href="/categories/reactive/"><span class="level-start"><span class="level-item">reactive</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/spring/"><span class="level-start"><span class="level-item">spring</span></span><span class="level-end"><span class="level-item tag">27</span></span></a><ul><li><a class="level is-mobile" href="/categories/spring/Scheduled/"><span class="level-start"><span class="level-item">Scheduled</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/spring/WebSockets/"><span class="level-start"><span class="level-item">WebSockets</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/spring/batch/"><span class="level-start"><span class="level-item">batch</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/spring/docker/"><span class="level-start"><span class="level-item">docker</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/spring/jedis/"><span class="level-start"><span class="level-item">jedis</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/spring/lettuce/"><span class="level-start"><span class="level-item">lettuce</span></span><span class="level-end"><span class="level-item tag">2</span></span></a></li><li><a class="level is-mobile" href="/categories/spring/metrics/"><span class="level-start"><span class="level-item">metrics</span></span><span class="level-end"><span class="level-item tag">3</span></span></a></li><li><a class="level is-mobile" href="/categories/spring/mybatis-plus/"><span class="level-start"><span class="level-item">mybatis-plus</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/spring/springdoc/"><span class="level-start"><span class="level-item">springdoc</span></span><span class="level-end"><span class="level-item tag">3</span></span></a></li><li><a class="level is-mobile" href="/categories/spring/tomcat/"><span class="level-start"><span class="level-item">tomcat</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/spring/webflux/"><span class="level-start"><span class="level-item">webflux</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li></ul></li><li><a class="level is-mobile" href="/categories/study/"><span class="level-start"><span class="level-item">study</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/vmware/"><span class="level-start"><span class="level-item">vmware</span></span><span class="level-end"><span class="level-item tag">3</span></span></a><ul><li><a class="level is-mobile" href="/categories/vmware/centos/"><span class="level-start"><span class="level-item">centos</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/vmware/win/"><span class="level-start"><span class="level-item">win</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li></ul></li><li><a class="level is-mobile" href="/categories/wsl/"><span class="level-start"><span class="level-item">wsl</span></span><span class="level-end"><span class="level-item tag">6</span></span></a><ul><li><a class="level is-mobile" href="/categories/wsl/docker/"><span class="level-start"><span class="level-item">docker</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/wsl/ubuntu/"><span class="level-start"><span class="level-item">ubuntu</span></span><span class="level-end"><span class="level-item tag">4</span></span></a></li></ul></li><li><a class="level is-mobile" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F/"><span class="level-start"><span class="level-item">分布式</span></span><span class="level-end"><span class="level-item tag">1</span></span></a><ul><li><a class="level is-mobile" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F/zookeeper/"><span class="level-start"><span class="level-item">zookeeper</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li></ul></li><li><a class="level is-mobile" href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/"><span class="level-start"><span class="level-item">大数据</span></span><span class="level-end"><span class="level-item tag">9</span></span></a><ul><li><a class="level is-mobile" href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/dubbo/"><span class="level-start"><span class="level-item">dubbo</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/elasticsearch/"><span class="level-start"><span class="level-item">elasticsearch</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/filebeat/"><span class="level-start"><span class="level-item">filebeat</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/flink/"><span class="level-start"><span class="level-item">flink</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/kafka/"><span class="level-start"><span class="level-item">kafka</span></span><span class="level-end"><span class="level-item tag">2</span></span></a></li><li><a class="level is-mobile" href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/kibana/"><span class="level-start"><span class="level-item">kibana</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/logstash/"><span class="level-start"><span class="level-item">logstash</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/mq/"><span class="level-start"><span class="level-item">mq</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li></ul></li><li><a class="level is-mobile" href="/categories/%E6%8B%A6%E6%88%AA-%E6%8A%93%E5%8C%85%E5%B7%A5%E5%85%B7/"><span class="level-start"><span class="level-item">拦截/抓包工具</span></span><span class="level-end"><span class="level-item tag">2</span></span></a><ul><li><a class="level is-mobile" href="/categories/%E6%8B%A6%E6%88%AA-%E6%8A%93%E5%8C%85%E5%B7%A5%E5%85%B7/burp-suit/"><span class="level-start"><span class="level-item">burp suit</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/%E6%8B%A6%E6%88%AA-%E6%8A%93%E5%8C%85%E5%B7%A5%E5%85%B7/fiddler/"><span class="level-start"><span class="level-item">fiddler</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li></ul></li><li><a class="level is-mobile" href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/"><span class="level-start"><span class="level-item">数据结构</span></span><span class="level-end"><span class="level-item tag">1</span></span></a><ul><li><a class="level is-mobile" href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/graph/"><span class="level-start"><span class="level-item">graph</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li></ul></li><li><a class="level is-mobile" href="/categories/%E7%AE%97%E6%B3%95/"><span class="level-start"><span class="level-item">算法</span></span><span class="level-end"><span class="level-item tag">21</span></span></a><ul><li><a class="level is-mobile" href="/categories/%E7%AE%97%E6%B3%95/dijkstra/"><span class="level-start"><span class="level-item">dijkstra</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li><li><a class="level is-mobile" href="/categories/%E7%AE%97%E6%B3%95/string/"><span class="level-start"><span class="level-item">string</span></span><span class="level-end"><span class="level-item tag">2</span></span></a></li><li><a class="level is-mobile" href="/categories/%E7%AE%97%E6%B3%95/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/"><span class="level-start"><span class="level-item">动态规划</span></span><span class="level-end"><span class="level-item tag">7</span></span></a></li><li><a class="level is-mobile" href="/categories/%E7%AE%97%E6%B3%95/%E6%A0%91/"><span class="level-start"><span class="level-item">树</span></span><span class="level-end"><span class="level-item tag">2</span></span></a></li><li><a class="level is-mobile" href="/categories/%E7%AE%97%E6%B3%95/%E9%93%BE%E8%A1%A8/"><span class="level-start"><span class="level-item">链表</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li></ul></li></ul></div></div></div><div class="card widget" data-type="tags"><div class="card-content"><div class="menu"><h3 class="menu-label">标签</h3><div class="field is-grouped is-grouped-multiline"><div class="control"><a class="tags has-addons" href="/tags/Kruskal/"><span class="tag">Kruskal</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/Object-Storage/"><span class="tag">Object Storage</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/WebSockets/"><span class="tag">WebSockets</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/ansible/"><span class="tag">ansible</span><span class="tag">7</span></a></div><div class="control"><a class="tags has-addons" href="/tags/centos/"><span class="tag">centos</span><span class="tag">10</span></a></div><div class="control"><a class="tags has-addons" href="/tags/cocos/"><span class="tag">cocos</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/cubrid/"><span class="tag">cubrid</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/dijkstra/"><span class="tag">dijkstra</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/docker/"><span class="tag">docker</span><span class="tag">11</span></a></div><div class="control"><a class="tags has-addons" href="/tags/dubbo/"><span class="tag">dubbo</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/elasticsearch/"><span class="tag">elasticsearch</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/filebeat/"><span class="tag">filebeat</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/flink/"><span class="tag">flink</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/gc/"><span class="tag">gc</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/git/"><span class="tag">git</span><span class="tag">4</span></a></div><div class="control"><a class="tags has-addons" href="/tags/hexo/"><span class="tag">hexo</span><span class="tag">5</span></a></div><div class="control"><a class="tags has-addons" href="/tags/http-server/"><span class="tag">http-server</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/java/"><span class="tag">java</span><span class="tag">28</span></a></div><div class="control"><a class="tags has-addons" href="/tags/java%E9%94%81/"><span class="tag">java锁</span><span class="tag">2</span></a></div><div class="control"><a class="tags has-addons" href="/tags/jdk/"><span class="tag">jdk</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/jedis/"><span class="tag">jedis</span><span class="tag">3</span></a></div><div class="control"><a class="tags has-addons" href="/tags/js/"><span class="tag">js</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/jvm/"><span class="tag">jvm</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/kafka/"><span class="tag">kafka</span><span class="tag">2</span></a></div><div class="control"><a class="tags has-addons" href="/tags/kibana/"><span class="tag">kibana</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/kubernetes/"><span class="tag">kubernetes</span><span class="tag">7</span></a></div><div class="control"><a class="tags has-addons" href="/tags/leetcode/"><span class="tag">leetcode</span><span class="tag">7</span></a></div><div class="control"><a class="tags has-addons" href="/tags/lettuce/"><span class="tag">lettuce</span><span class="tag">3</span></a></div><div class="control"><a class="tags has-addons" href="/tags/linux/"><span class="tag">linux</span><span class="tag">7</span></a></div><div class="control"><a class="tags has-addons" href="/tags/logstash/"><span class="tag">logstash</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/metrics/"><span class="tag">metrics</span><span class="tag">3</span></a></div><div class="control"><a class="tags has-addons" href="/tags/mongodb/"><span class="tag">mongodb</span><span class="tag">2</span></a></div><div class="control"><a class="tags has-addons" href="/tags/mq/"><span class="tag">mq</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/mybatis-plus/"><span class="tag">mybatis-plus</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/mysql/"><span class="tag">mysql</span><span class="tag">6</span></a></div><div class="control"><a class="tags has-addons" href="/tags/netty/"><span class="tag">netty</span><span class="tag">3</span></a></div><div class="control"><a class="tags has-addons" href="/tags/network/"><span class="tag">network</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/nginx/"><span class="tag">nginx</span><span class="tag">13</span></a></div><div class="control"><a class="tags has-addons" href="/tags/opencv/"><span class="tag">opencv</span><span class="tag">2</span></a></div><div class="control"><a class="tags has-addons" href="/tags/python/"><span class="tag">python</span><span class="tag">2</span></a></div><div class="control"><a class="tags has-addons" href="/tags/quarkus/"><span class="tag">quarkus</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/reactive/"><span class="tag">reactive</span><span class="tag">4</span></a></div><div class="control"><a class="tags has-addons" href="/tags/redis/"><span class="tag">redis</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/spring/"><span class="tag">spring</span><span class="tag">27</span></a></div><div class="control"><a class="tags has-addons" href="/tags/springdoc/"><span class="tag">springdoc</span><span class="tag">2</span></a></div><div class="control"><a class="tags has-addons" href="/tags/springfox/"><span class="tag">springfox</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/string/"><span class="tag">string</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/study/"><span class="tag">study</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/tomcat/"><span class="tag">tomcat</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/ubuntu/"><span class="tag">ubuntu</span><span class="tag">4</span></a></div><div class="control"><a class="tags has-addons" href="/tags/unity/"><span class="tag">unity</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/unreal/"><span class="tag">unreal</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/vmware/"><span class="tag">vmware</span><span class="tag">3</span></a></div><div class="control"><a class="tags has-addons" href="/tags/webflux/"><span class="tag">webflux</span><span class="tag">3</span></a></div><div class="control"><a class="tags has-addons" href="/tags/wsl/"><span class="tag">wsl</span><span class="tag">7</span></a></div><div class="control"><a class="tags has-addons" href="/tags/zookeeper/"><span class="tag">zookeeper</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/%E4%BA%8C%E5%88%86%E6%9F%A5%E6%89%BE/"><span class="tag">二分查找</span><span class="tag">2</span></a></div><div class="control"><a class="tags has-addons" href="/tags/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/"><span class="tag">动态规划</span><span class="tag">8</span></a></div><div class="control"><a class="tags has-addons" href="/tags/%E5%B9%B6%E5%8F%91/"><span class="tag">并发</span><span class="tag">2</span></a></div><div class="control"><a class="tags has-addons" href="/tags/%E6%8B%A6%E6%88%AA-%E6%8A%93%E5%8C%85%E5%B7%A5%E5%85%B7/"><span class="tag">拦截/抓包工具</span><span class="tag">2</span></a></div><div class="control"><a class="tags has-addons" href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/"><span class="tag">数据结构</span><span class="tag">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/%E6%A0%91/"><span class="tag">树</span><span class="tag">2</span></a></div><div class="control"><a class="tags has-addons" href="/tags/%E7%AE%97%E6%B3%95/"><span class="tag">算法</span><span class="tag">8</span></a></div><div class="control"><a class="tags has-addons" href="/tags/%E9%93%BE%E8%A1%A8/"><span class="tag">链表</span><span class="tag">4</span></a></div></div></div></div></div><div class="column-right-shadow is-hidden-widescreen is-sticky"></div></div><div class="column column-right is-4-tablet is-4-desktop is-2-widescreen is-hidden-touch is-hidden-desktop-only order-3 is-sticky"><div class="card widget" id="toc" data-type="toc"><div class="card-content"><div class="menu"><h3 class="menu-label">目录</h3><ul class="menu-list"><li><a class="level is-mobile" href="#SpringBoot配置Actuator-metrics的监控"><span class="level-left"><span class="level-item">1</span><span class="level-item">SpringBoot配置Actuator metrics的监控</span></span></a><ul class="menu-list"><li><a class="level is-mobile" href="#Actuator对应Prometheus的监控指标"><span class="level-left"><span class="level-item">1.1</span><span class="level-item">Actuator对应Prometheus的监控指标</span></span></a></li><li><a class="level is-mobile" href="#Actuator-端点说明"><span class="level-left"><span class="level-item">1.2</span><span class="level-item">Actuator 端点说明</span></span></a></li><li><a class="level is-mobile" href="#Prometheus-x2F-Metrics-端点说明"><span class="level-left"><span class="level-item">1.3</span><span class="level-item">Prometheus/Metrics 端点说明</span></span></a></li></ul></li><li><a class="level is-mobile" href="#参考文章"><span class="level-left"><span class="level-item">2</span><span class="level-item">参考文章</span></span></a></li></ul></div></div><style>#toc .menu-list > li > a.is-active + .menu-list { display: block; }#toc .menu-list > li > a + .menu-list { display: none; }</style><script src="/js/toc.js" defer></script></div><div class="card widget" data-type="recent-posts"><div class="card-content"><h3 class="menu-label">最新文章</h3><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-05-18T06:25:41.000Z">2022-05-18</time></p><p class="title"><a href="/2022/05/18/java/java-offer/">java</a></p><p class="categories"><a href="/categories/java/">java</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-05-18T06:25:41.000Z">2022-05-18</time></p><p class="title"><a href="/2022/05/18/java/java-redis2/">java redis2</a></p><p class="categories"><a href="/categories/java/">java</a> / <a href="/categories/java/redis/">redis</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-05-18T06:25:41.000Z">2022-05-18</time></p><p class="title"><a href="/2022/05/18/java/java-redis/">java redis</a></p><p class="categories"><a href="/categories/java/">java</a> / <a href="/categories/java/redis/">redis</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-04-13T07:51:10.000Z">2022-04-13</time></p><p class="title"><a href="/2022/04/13/spring/spring-Scheduled/">spring @Scheduled</a></p><p class="categories"><a href="/categories/spring/">spring</a> / <a href="/categories/spring/Scheduled/">Scheduled</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-04-13T07:51:10.000Z">2022-04-13</time></p><p class="title"><a href="/2022/04/13/spring/spring-batch/">spring batch</a></p><p class="categories"><a href="/categories/spring/">spring</a> / <a href="/categories/spring/batch/">batch</a></p></div></article></div></div></div></div></div></section><footer class="footer"><div class="container"><div class="level"><div class="level-start"><a class="footer-logo is-block mb-2" href="/">Summer</a><p class="is-size-7"><span>&copy; 2022 Luo Chunhai</span>  Powered by <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a> &amp; <a href="https://github.com/ppoffice/hexo-theme-icarus" target="_blank" rel="noopener">Icarus</a></p></div><div class="level-end"></div></div></div></footer><script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/moment@2.22.2/min/moment-with-locales.min.js"></script><script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.4/dist/clipboard.min.js" defer></script><script>moment.locale("zh-CN");</script><script>var IcarusThemeSettings = {
+            article: {
+                highlight: {
+                    clipboard: true,
+                    fold: 'unfolded'
+                }
+            }
+        };</script><script src="/js/column.js"></script><script src="/js/animation.js"></script><a id="back-to-top" title="回到顶端" href="javascript:;"><i class="fas fa-chevron-up"></i></a><script src="/js/back_to_top.js" defer></script><!--!--><!--!--><!--!--><script src="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/js/lightgallery.min.js" defer></script><script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js" defer></script><script>window.addEventListener("load", () => {
+            if (typeof $.fn.lightGallery === 'function') {
+                $('.article').lightGallery({ selector: '.gallery-item' });
+            }
+            if (typeof $.fn.justifiedGallery === 'function') {
+                if ($('.justified-gallery > p > .gallery-item').length) {
+                    $('.justified-gallery > p > .gallery-item').unwrap();
+                }
+                $('.justified-gallery').justifiedGallery();
+            }
+        });</script><!--!--><!--!--><!--!--><!--!--><!--!--><script src="/js/main.js" defer></script><div class="searchbox"><div class="searchbox-container"><div class="searchbox-header"><div class="searchbox-input-container"><input class="searchbox-input" type="text" placeholder="想要查找什么..."></div><a class="searchbox-close" href="javascript:;">×</a></div><div class="searchbox-body"></div></div></div><script src="/js/insight.js" defer></script><script>document.addEventListener('DOMContentLoaded', function () {
+            loadInsight({"contentUrl":"/content.json"}, {"hint":"想要查找什么...","untitled":"(无标题)","posts":"文章","pages":"页面","categories":"分类","tags":"标签"});
+        });</script></body></html>
